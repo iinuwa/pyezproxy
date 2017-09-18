@@ -1,5 +1,6 @@
 """This is a utility module for working with EZproxy stanzas"""
 
+import pdb
 from urllib.parse import urlparse
 from collections import OrderedDict
 import requests
@@ -83,48 +84,50 @@ def translate_url_origin(url):
     origin = parsed_url.scheme + "://" + parsed_url.netloc
     return origin
 
-def login(hostname,username,password):
+def login(hostname, username, password):
     """Login to an instance of EZProxy"""
     login_url = "https://login." + hostname + "/login"
-    restart_url = "https://login." + hostname + "/restart"
     credentials = {
-            "user": username,
-            "pass": password
-        }
+        "user": username,
+        "pass": password
+    }
 
     auth = requests.post(
-            login_url,
-            data=credentials,
-            allow_redirects=False
-        )
-
-    for key in auth.cookies.keys:
+        login_url,
+        data=credentials,
+        allow_redirects=False
+    )
+    auth_cookie = {}
+    for key in auth.cookies.keys():
         if key.startswith("EZProxy"):
-            authCookie = {key: auth.cookies.get(key)},
+            auth_cookie = {key: auth.cookies.get(key)}
         else:
-            assert(Exception("No authorized session found"))
-    return authCookie
+            Exception("No authorized session found")
+    return auth_cookie
 
-def get_pid(hostname,authCookie):
+def get_pid(hostname, auth_cookie):
     """Get the current PID of EZProxy"""
+    restart_url = "https://login." + hostname + "/restart"
     restart_form = requests.get(
-            restart_url,
-            data=credentials,
-            cookies=authCookie,
-            allow_redirects=False
-        )
-    pid = BeautifulSoup(restart_form.text).find_all(attrs={"name":"pid"})[0].attrs["value"]
+        restart_url,
+        cookies=auth_cookie,
+        allow_redirects=False
+    )
+    pid = BeautifulSoup(restart_form.text, "html.parser").find_all(attrs={"name":"pid"})[0].attrs["value"]
     return pid
 
-def restart_ezproxy(
+def restart_ezproxy(hostname, auth_cookie):
     """Restart this instance of EZProxy"""
+    restart_url = "https://login." + hostname + "/restart"
+    pid = get_pid(hostname, auth_cookie)
     restart_payload = {
-            "pid": pid,
-            "confirm": "RESTART"
-        }
+        "pid": pid,
+        "confirm": "RESTART"
+    }
 
-    restart_request = requests.post(restart_url, data=restart_payload,
-        cookies=authCookie)
-    
-    return BeautifulSoup(restart_request.text).h1.next_sibling.strip() ==
-        "EZproxy will restart in 5 seconds."
+    restart_request = requests.post(
+        restart_url,
+        data=restart_payload,
+        cookies=auth_cookie
+    )
+    return BeautifulSoup(restart_request.text, "html.parser").h1.next_sibling.strip() == "EZproxy will restart in 5 seconds."
