@@ -5,13 +5,10 @@ from bs4 import BeautifulSoup
 
 class EzproxyServer:
     """This is a class to represent an Ezproxy server instance"""
-    def __init__(self, hostname, username, password):
+    def __init__(self, hostname):
         self.hostname = hostname
         self.auth_cookie = None
-        self.login(username, password)
-
-        # Set the server PID.
-        self.get_pid()
+        self.pid = None
 
     def login(self, username, password):
         """Login to an instance of EZProxy"""
@@ -67,7 +64,7 @@ class EzproxyServer:
                 time.sleep(5)
                 self.get_pid()
             else:
-                Exception("Failed to restart server.")
-        except:
-            Exception("Failed to restart server.")
+                RuntimeError("Failed to restart server.")
+        except RuntimeError:
+            pass
         return self.pid

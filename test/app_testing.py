@@ -1,4 +1,5 @@
-import os
+"""Module for test cases"""
+
 import unittest
 from unittest import mock
 from collections import OrderedDict
@@ -7,6 +8,7 @@ from app.stanzas import Stanza
 from app.server import EzproxyServer
 
 class ParseStanzaTestCase(unittest.TestCase):
+    """Test cases for stanza methods"""
     def setUp(self):
         self.test_text = """
         # This file contains database stanzas for resources only available
@@ -69,23 +71,30 @@ class ParseStanzaTestCase(unittest.TestCase):
         self.stanzas = []
         for stanza in self.test_raw_stanza_array:
             self.stanzas.append(Stanza(stanza))
-                
+
     def test_parse(self):
-        self.assertEqual(stanzas.parse_stanzas(self.test_text),
-                self.test_raw_stanza_array, "Parsing does not match")
+        """Test for stanzas.parse_stanzas()"""
+        self.assertEqual(
+            stanzas.parse_stanzas(self.test_text),
+            self.test_raw_stanza_array,
+            "Parsing does not match"
+        )
 
     def test_get_matching_origin(self):
+        """Test for stanzas.search_proxy()"""
         self.assertEqual(
-                stanzas.search_proxy(
-                    "http://libraries.mangolanguages.com",
-                    self.stanzas
-                ),
-                ["Mango for Libraries - Chicago"]
-            )
+            stanzas.search_proxy(
+                "http://libraries.mangolanguages.com",
+                self.stanzas
+            ),
+            ["Mango for Libraries - Chicago"]
+        )
 
 
 class TranslateUrlTestCase(unittest.TestCase):
+    """TestCases for origin-related methods"""
     def test_translate(self):
+        """Simple test for HTTP URL"""
         self.assertEqual(
             stanzas.translate_url_origin("http://www.example.com"),
             "http://www.example.com",
@@ -93,6 +102,7 @@ class TranslateUrlTestCase(unittest.TestCase):
         )
 
     def test_translate_https(self):
+        """Simple test for HTTPS URL"""
         self.assertEqual(
             stanzas.translate_url_origin("https://www.example.com"),
             "https://www.example.com",
@@ -100,6 +110,8 @@ class TranslateUrlTestCase(unittest.TestCase):
         )
 
     def test_translate_with_port(self):
+        """Test that that port is added to the origin URL when port is specified
+        in stanza directive"""
         self.assertEqual(
             stanzas.translate_url_origin("http://www.example.com:80"),
             "http://www.example.com:80",
@@ -107,6 +119,7 @@ class TranslateUrlTestCase(unittest.TestCase):
         )
 
 class StanzaTestCase(unittest.TestCase):
+    """Test cases for Stanza class"""
     def setUp(self):
         stanza_array = OrderedDict({
             "name": "Mango for Libraries - Chicago",
@@ -123,56 +136,72 @@ class StanzaTestCase(unittest.TestCase):
         self.stanza = stanzas.Stanza(stanza_array)
 
     def test_get_directives(self):
+        """Test for Stanza.get_directives()"""
         self.assertEqual(
-                self.stanza.get_directives(),
-                OrderedDict({
-                    "Title": "Mango for Libraries - Chicago",
-                    "URL": "https://connect.mangolanguages.com/mbicl/start",
-                    "DJ": [
-                        "mangolanguages.com",
-                        "libraries.mangolanguages.com"
-                    ],
-                    "HJ": "http://libraries.mangolanguages.com/mbicl/start"
-                }),
-                "Directives do not match."
-            )
+            self.stanza.get_directives(),
+            OrderedDict({
+                "Title": "Mango for Libraries - Chicago",
+                "URL": "https://connect.mangolanguages.com/mbicl/start",
+                "DJ": [
+                    "mangolanguages.com",
+                    "libraries.mangolanguages.com"
+                ],
+                "HJ": "http://libraries.mangolanguages.com/mbicl/start"
+            }),
+            "Directives do not match."
+        )
     def test_get_origins(self):
+        """Test for Stanza.get_origin()"""
         self.assertEqual(
-                self.stanza.get_origins(),
-                set([
-                    "https://connect.mangolanguages.com",
-                    "http://libraries.mangolanguages.com"
-                ]),
-                "Origins do not match."
-            )
-
+            self.stanza.get_origins(),
+            set([
+                "https://connect.mangolanguages.com",
+                "http://libraries.mangolanguages.com"
+            ]),
+            "Origins do not match."
+        )
 
 class EZProxyServerTestCase(unittest.TestCase):
+    """Test cases for EzproxyServer class"""
     def mocked_login_request(self, **kwargs):
+        """
+        Override post request to send a mocked response
+        for an EZProxy logon
+        """
         class MockCookie:
-            def __init__(self,cookie_name,cookie_value):
+            """Mock class emulating Requests CookieJar object"""
+            def __init__(self, cookie_name, cookie_value):
                 self.cookie_name = cookie_name
                 self.cookie_value = cookie_value
             def keys(self):
+                """Required to mock CookieJar object"""
                 return [self.cookie_name]
-            def get(self,cookie_name):
+            def get(self, *args):
+                """Required to mock CookieJar object"""
                 return self.cookie_value
-        class MockResponse:
-            def __init__(self,cookie_name,cookie_value):
+
+        class MockLoginResponse:
+            """Mock class for EZProxy login response"""
+            def __init__(self, cookie_name, cookie_value):
                 self.cookie_name = cookie_name
                 self.cookie_value = cookie_value
                 self.cookies = MockCookie(cookie_name, cookie_value)
-        return MockResponse("EZProxyTest", "AbcDef123")
-    
+        return MockLoginResponse("EZProxyTest", "AbcDef123")
+
     @mock.patch('requests.post', side_effect=mocked_login_request)
-    def test_login(self,mock_get):
+    def test_login(self, mock_get):
+        """Test for EzproxyServer.login()"""
+        server = EzproxyServer("example.com")
+        self.assertTrue(server.login("admin", "password"))
         self.assertEqual(
-            EzproxyServer.login("chilib-test.moody.edu","admin","password"),
+            server.auth_cookie,
             {"EZProxyTest": "AbcDef123"}
         )
 
-    def mocked_request_form(self,cookies,allow_redirects):
-        class MockResponse:
+    def mocked_request_form(self, cookies, allow_redirects):
+        """Override request.get for GET /restart on EZproxy server"""
+        class MockRestartFormResponse:
+            """Emulation of GET /restart on EZProxy server"""
             def __init__(self):
                 self.text = '''<html>
                 <body>
@@ -192,34 +221,37 @@ class EZProxyServerTestCase(unittest.TestCase):
                 </body>
                 </html>
                 '''
-        if (cookies["EZProxyCHI"] != "AbcDef123"):
-            return Exception("Authentication failed")
-        return MockResponse()
+        return MockRestartFormResponse()
 
     @mock.patch("requests.get", side_effect=mocked_request_form)
     def test_get_pid(self, mock_get):
+        """Test for EzproxyServer.get_pid()"""
+        server = EzproxyServer("example.com")
+        server.auth_cookie = {"cookie":"value"}
+        server.get_pid()
         self.assertEqual(
-            EzproxyServer.get_pid("example.com", {"EZProxyCHI":"AbcDef123"}),
+            server.pid,
             "7977"
         )
 
-    def mocked_restart_request(self, **kwargs):
-        class MockResponse:
+    def mocked_restart_request(self, url, *args, **kwargs):
+        """Override POST request to EZproxy server for testing"""
+        class MockRestartResponse:
+            """Emulates POST /restart response from EZProxy"""
             def __init__(self):
                 self.text = """<html><body><h1>EZProxy</h1>
                 EZproxy will restart in 5 seconds.
                 </body></html>"""
-        return MockResponse()
-        
-    def mocked_pid_response(self, *args):
-        return 11111
+        return MockRestartResponse()
 
     @mock.patch("requests.post", side_effect=mocked_restart_request)
-    @mock.patch("app.server.EzproxyServer.get_pid", side_effect=mocked_pid_response)
-    def test_restart_ezproxy(self,mock_get, mock_get2):
-        server = EzproxyServer()
-        self.assertTrue(server.restart_ezproxy("example.com", {"cookie":"value"}))
+    def test_restart_ezproxy(self, mock_get):
+        """Test for EzproxyServer.restart_ezproxy()"""
+        server = EzproxyServer("example.com")
+        server.auth_cookie = {"cookie":"value"}
+        server.pid = 11111
+        self.assertTrue(server.restart_ezproxy())
 
-        
+
 if __name__ == '__main__':
     unittest.main()
