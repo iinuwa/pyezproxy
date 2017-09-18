@@ -4,6 +4,7 @@ from unittest import mock
 from collections import OrderedDict
 from app import stanzas
 from app.stanzas import Stanza
+from app.server import EzproxyServer
 
 class ParseStanzaTestCase(unittest.TestCase):
     def setUp(self):
@@ -166,7 +167,7 @@ class EZProxyServerTestCase(unittest.TestCase):
     @mock.patch('requests.post', side_effect=mocked_login_request)
     def test_login(self,mock_get):
         self.assertEqual(
-            stanzas.login("chilib-test.moody.edu","admin","password"),
+            EzproxyServer.login("chilib-test.moody.edu","admin","password"),
             {"EZProxyTest": "AbcDef123"}
         )
 
@@ -198,7 +199,7 @@ class EZProxyServerTestCase(unittest.TestCase):
     @mock.patch("requests.get", side_effect=mocked_request_form)
     def test_get_pid(self, mock_get):
         self.assertEqual(
-            stanzas.get_pid("example.com", {"EZProxyCHI":"AbcDef123"}),
+            EzproxyServer.get_pid("example.com", {"EZProxyCHI":"AbcDef123"}),
             "7977"
         )
 
@@ -214,9 +215,10 @@ class EZProxyServerTestCase(unittest.TestCase):
         return 11111
 
     @mock.patch("requests.post", side_effect=mocked_restart_request)
-    @mock.patch("app.stanzas.get_pid", side_effect=mocked_pid_response)
+    @mock.patch("app.server.EzproxyServer.get_pid", side_effect=mocked_pid_response)
     def test_restart_ezproxy(self,mock_get, mock_get2):
-        self.assertTrue(stanzas.restart_ezproxy("example.com", {"cookie":"value"}))
+        server = EzproxyServer()
+        self.assertTrue(server.restart_ezproxy("example.com", {"cookie":"value"}))
 
         
 if __name__ == '__main__':
