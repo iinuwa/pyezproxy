@@ -62,10 +62,11 @@ def parse_stanzas(stanza_text):
                     db_config[key] = value
     return stanza_array
 
-def search_proxy(origin_url, stanzas):
+def search_proxy(url, stanzas):
     """
     Search proxy instance for existing stanza with origin URL
     """
+    origin_url = translate_url_origin(url)
     matching_stanzas = []
     try:
         for stanza in stanzas:
