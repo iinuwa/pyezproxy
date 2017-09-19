@@ -190,9 +190,10 @@ class EZProxyServerTestCase(unittest.TestCase):
 
     @mock.patch('requests.post', side_effect=mocked_login_request)
     @mock.patch('pyezproxy.server.EzproxyServer.get_pid')
-    def test_login(self, mock_get, mock_get2):
+    @mock.patch('pyezproxy.server.EzproxyServer._EzproxyServer__set_stanzas')
+    def test_login(self, *args):
         """Test for EzproxyServer.login()"""
-        server = EzproxyServer("example.com")
+        server = EzproxyServer("example.com",".")
         self.assertTrue(server.login("admin", "password"))
         self.assertEqual(
             server.auth_cookie,
@@ -225,9 +226,10 @@ class EZProxyServerTestCase(unittest.TestCase):
         return MockRestartFormResponse()
 
     @mock.patch("requests.get", side_effect=mocked_request_form)
-    def test_get_pid(self, mock_get):
+    @mock.patch('pyezproxy.server.EzproxyServer._EzproxyServer__set_stanzas')
+    def test_get_pid(self, *args):
         """Test for EzproxyServer.get_pid()"""
-        server = EzproxyServer("example.com")
+        server = EzproxyServer("example.com",".")
         server.auth_cookie = {"cookie":"value"}
         server.get_pid()
         self.assertEqual(
@@ -247,9 +249,10 @@ class EZProxyServerTestCase(unittest.TestCase):
 
     @mock.patch("requests.post", side_effect=mocked_restart_request)
     @mock.patch("pyezproxy.server.EzproxyServer.get_pid")
+    @mock.patch('pyezproxy.server.EzproxyServer._EzproxyServer__set_stanzas')
     def test_restart_ezproxy(self, *args):
         """Test for EzproxyServer.restart_ezproxy()"""
-        server = EzproxyServer("example.com")
+        server = EzproxyServer("example.com",".")
         server.auth_cookie = {"cookie":"value"}
         server.pid = 11111
         self.assertTrue(server.restart_ezproxy(no_wait=True))

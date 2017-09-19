@@ -2,13 +2,25 @@
 import time
 import requests
 from bs4 import BeautifulSoup
+#from pyezproxy import stanzas
+#from stanzas import Stanza
 
 class EzproxyServer:
     """This is a class to represent an Ezproxy server instance"""
-    def __init__(self, hostname):
+    def __init__(self, hostname, base_dir):
         self.hostname = hostname
+        self.base_dir = base_dir
+        self.__set_stanzas()
         self.auth_cookie = None
         self.pid = None
+
+    def __set_stanzas(self):
+        with open(self.base_dir + "/config/databases.conf", "r") as fp:
+            raw_stanzas = stanzas.parse_stanzas(fp.read())
+            mystanzas = []
+            for stanza in raw_stanzas:
+                mystanzas.append(Stanza(stanza))
+            self.stanzas = mystanzas
 
     def login(self, username, password):
         """Login to an instance of EZProxy"""
