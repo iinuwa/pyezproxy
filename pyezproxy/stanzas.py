@@ -23,11 +23,11 @@ class Stanza:
             if directive in [
                     "URL", "Host", "H", "HostJavascript", "HJ"
                 ]:
-                if isinstance(directive, str):
+                if isinstance(directives[directive], str):
                     origin_array.append(translate_url_origin(directives[directive]))
-                elif isinstance(directive, list):
-                    for i in directives[directive]:
-                        origin_array.append(translate_url_origin(directives[directive][i]))
+                elif isinstance(directives[directive], list):
+                    for directive_str in directives[directive]:
+                        origin_array.append(translate_url_origin(directive_str))
         return set(origin_array)
 
 def parse_stanzas(stanza_text):
