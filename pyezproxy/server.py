@@ -45,7 +45,7 @@ class EzproxyServer:
             .attrs["value"]
         self.pid = pid
 
-    def restart_ezproxy(self):
+    def restart_ezproxy(self, no_wait=False):
         """Restart this instance of EZProxy"""
         restart_url = "https://login." + self.hostname + "/restart"
         restart_payload = {
@@ -61,7 +61,8 @@ class EzproxyServer:
             )
             if BeautifulSoup(restart_request.text, "html.parser").h1.next_sibling.strip() == \
                     "EZproxy will restart in 5 seconds.":
-                time.sleep(5)
+                if no_wait is False:
+                    time.sleep(5)
                 self.get_pid()
             else:
                 RuntimeError("Failed to restart server.")

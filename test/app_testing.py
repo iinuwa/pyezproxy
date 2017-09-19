@@ -3,9 +3,9 @@
 import unittest
 from unittest import mock
 from collections import OrderedDict
-from app import stanzas
-from app.stanzas import Stanza
-from app.server import EzproxyServer
+from pyezproxy import stanzas
+from pyezproxy.stanzas import Stanza
+from pyezproxy.server import EzproxyServer
 
 class ParseStanzaTestCase(unittest.TestCase):
     """Test cases for stanza methods"""
@@ -234,7 +234,7 @@ class EZProxyServerTestCase(unittest.TestCase):
             "7977"
         )
 
-    def mocked_restart_request(self, url, *args, **kwargs):
+    def mocked_restart_request(self, *args, **kwargs):
         """Override POST request to EZproxy server for testing"""
         class MockRestartResponse:
             """Emulates POST /restart response from EZProxy"""
@@ -245,12 +245,13 @@ class EZProxyServerTestCase(unittest.TestCase):
         return MockRestartResponse()
 
     @mock.patch("requests.post", side_effect=mocked_restart_request)
-    def test_restart_ezproxy(self, mock_get):
+    @mock.patch("pyezproxy.server.EzproxyServer.get_pid")
+    def test_restart_ezproxy(self, *args):
         """Test for EzproxyServer.restart_ezproxy()"""
         server = EzproxyServer("example.com")
         server.auth_cookie = {"cookie":"value"}
         server.pid = 11111
-        self.assertTrue(server.restart_ezproxy())
+        self.assertTrue(server.restart_ezproxy(no_wait=True))
 
 
 if __name__ == '__main__':
