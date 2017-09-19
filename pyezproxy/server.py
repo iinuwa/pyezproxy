@@ -30,6 +30,7 @@ class EzproxyServer:
             else:
                 Exception("No authorized session found")
         self.auth_cookie = auth_cookie
+        self.get_pid()
         return True
 
     def get_pid(self):

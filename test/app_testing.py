@@ -189,7 +189,8 @@ class EZProxyServerTestCase(unittest.TestCase):
         return MockLoginResponse("EZProxyTest", "AbcDef123")
 
     @mock.patch('requests.post', side_effect=mocked_login_request)
-    def test_login(self, mock_get):
+    @mock.patch('pyezproxy.server.EzproxyServer.get_pid')
+    def test_login(self, mock_get, mock_get2):
         """Test for EzproxyServer.login()"""
         server = EzproxyServer("example.com")
         self.assertTrue(server.login("admin", "password"))
