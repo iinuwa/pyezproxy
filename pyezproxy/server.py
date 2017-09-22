@@ -2,8 +2,8 @@
 import time
 import requests
 from bs4 import BeautifulSoup
-#from pyezproxy import stanzas
-#from stanzas import Stanza
+from . import stanzas
+from .stanzas import Stanza
 
 class EzproxyServer:
     """This is a class to represent an Ezproxy server instance"""
@@ -15,8 +15,8 @@ class EzproxyServer:
         self.pid = None
 
     def __set_stanzas(self):
-        with open(self.base_dir + "/config/databases.conf", "r") as fp:
-            raw_stanzas = stanzas.parse_stanzas(fp.read())
+        with open(self.base_dir + "/config/databases.conf", "r") as stanza_file:
+            raw_stanzas = stanzas.parse_stanzas(stanza_file.read())
             mystanzas = []
             for stanza in raw_stanzas:
                 mystanzas.append(Stanza(stanza))
