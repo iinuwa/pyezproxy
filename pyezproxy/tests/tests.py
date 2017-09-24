@@ -4,8 +4,9 @@ import unittest
 from unittest import mock
 from collections import OrderedDict
 from pyezproxy import stanzas
-from pyezproxy.stanzas import Stanza
+from pyezproxy.stanzas import Stanza, StanzaUtil
 from pyezproxy.server import EzproxyServer
+
 
 class ParseStanzaTestCase(unittest.TestCase):
     """Test cases for stanza methods"""
@@ -73,21 +74,11 @@ class ParseStanzaTestCase(unittest.TestCase):
             self.stanzas.append(Stanza(stanza))
 
     def test_parse(self):
-        """Test for stanzas.parse_stanzas()"""
+        """Test for StanzaUtil.parse_stanzas()"""
         self.assertEqual(
-            stanzas.parse_stanzas(self.test_text),
+            StanzaUtil.parse_stanzas(self.test_text),
             self.test_raw_stanza_array,
             "Parsing does not match"
-        )
-
-    def test_get_matching_origin(self):
-        """Test for stanzas.search_proxy()"""
-        self.assertEqual(
-            stanzas.search_proxy(
-                "http://libraries.mangolanguages.com",
-                self.stanzas
-            ),
-            ["Mango for Libraries - Chicago"]
         )
 
 
@@ -96,7 +87,7 @@ class TranslateUrlTestCase(unittest.TestCase):
     def test_translate(self):
         """Simple test for HTTP URL"""
         self.assertEqual(
-            stanzas.translate_url_origin("http://www.example.com"),
+            StanzaUtil.translate_url_origin("http://www.example.com"),
             "http://www.example.com",
             "Origins do not match"
         )
@@ -104,7 +95,7 @@ class TranslateUrlTestCase(unittest.TestCase):
     def test_translate_https(self):
         """Simple test for HTTPS URL"""
         self.assertEqual(
-            stanzas.translate_url_origin("https://www.example.com"),
+            StanzaUtil.translate_url_origin("https://www.example.com"),
             "https://www.example.com",
             "Origins do not match"
         )
@@ -113,10 +104,11 @@ class TranslateUrlTestCase(unittest.TestCase):
         """Test that that port is added to the origin URL when port is specified
         in stanza directive"""
         self.assertEqual(
-            stanzas.translate_url_origin("http://www.example.com:80"),
+            StanzaUtil.translate_url_origin("http://www.example.com:80"),
             "http://www.example.com:80",
             "Origins do not match"
         )
+
 
 class StanzaTestCase(unittest.TestCase):
     """Test cases for Stanza class"""
@@ -150,6 +142,7 @@ class StanzaTestCase(unittest.TestCase):
             }),
             "Directives do not match."
         )
+
     def test_get_origins(self):
         """Test for Stanza.get_origin()"""
         self.assertEqual(
@@ -161,8 +154,49 @@ class StanzaTestCase(unittest.TestCase):
             "Origins do not match."
         )
 
+
 class EZProxyServerTestCase(unittest.TestCase):
     """Test cases for EzproxyServer class"""
+
+    def setUp(self):
+        self.test_text = """
+        # This file contains database stanzas for resources only available
+        # MAIN and DL students
+
+            ####################################################################
+            ###############   EBOOK TYPE RESOURCES    ##########################
+            ####################################################################
+
+            #### Sage Knowledge START #####
+            Title Sage Knowledge
+            URL http://knowledge.sagepub.com
+            #### Sage Knowledge  END ####
+
+            ####################################################################
+            ###############    DATABASES PROVIDERS    ##########################
+            ####################################################################
+
+            #### IPA Source START ####
+            Title IPA Source
+            URL https://www.ipasource.com
+            #### IPA Source END ####
+
+            #### Mango for Libraries START ####
+            Title Mango for Libraries - Chicago
+            URL https://connect.mangolanguages.com/mbicl/start
+            DJ mangolanguages.com
+            DJ libraries.mangolanguages.com
+            HJ http://libraries.mangolanguages.com/mbicl/start
+            #### Mango for Libraries END ####
+            """
+
+    def test_set_stanzas(self):
+        with mock.patch('builtins.open',
+                        mock.mock_open(read_data=self.test_text)) as mock_file:
+            server = EzproxyServer("example.com", ".")
+            mock_file.assert_called_with("./config/databases.conf", "r")
+            self.assertTrue(isinstance(server.stanzas[2], Stanza))
+
     def mocked_login_request(self, **kwargs):
         """
         Override post request to send a mocked response
@@ -173,9 +207,11 @@ class EZProxyServerTestCase(unittest.TestCase):
             def __init__(self, cookie_name, cookie_value):
                 self.cookie_name = cookie_name
                 self.cookie_value = cookie_value
+
             def keys(self):
                 """Required to mock CookieJar object"""
                 return [self.cookie_name]
+
             def get(self, *args):
                 """Required to mock CookieJar object"""
                 return self.cookie_value
@@ -230,7 +266,7 @@ class EZProxyServerTestCase(unittest.TestCase):
     def test_get_pid(self, *args):
         """Test for EzproxyServer.get_pid()"""
         server = EzproxyServer("example.com", ".")
-        server.auth_cookie = {"cookie":"value"}
+        server.auth_cookie = {"cookie": "value"}
         server.get_pid()
         self.assertEqual(
             server.pid,
@@ -253,9 +289,22 @@ class EZProxyServerTestCase(unittest.TestCase):
     def test_restart_ezproxy(self, *args):
         """Test for EzproxyServer.restart_ezproxy()"""
         server = EzproxyServer("example.com", ".")
-        server.auth_cookie = {"cookie":"value"}
+        server.auth_cookie = {"cookie": "value"}
         server.pid = 11111
         self.assertTrue(server.restart_ezproxy(no_wait=True))
+
+    def test_get_matching_origin(self):
+        """Test for stanzas.search_proxy()"""
+
+        with mock.patch('builtins.open',
+                        mock.mock_open(read_data=self.test_text)):
+            server = EzproxyServer("example.com", ".")
+            self.assertEqual(
+                server.search_proxy(
+                    "http://libraries.mangolanguages.com"
+                ),
+                ["Mango for Libraries - Chicago"]
+            )
 
 
 if __name__ == '__main__':

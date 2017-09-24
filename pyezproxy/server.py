@@ -3,7 +3,8 @@ import time
 import requests
 from bs4 import BeautifulSoup
 from . import stanzas
-from .stanzas import Stanza
+from .stanzas import Stanza, StanzaUtil
+
 
 class EzproxyServer:
     """This is a class to represent an Ezproxy server instance"""
@@ -16,7 +17,7 @@ class EzproxyServer:
 
     def __set_stanzas(self):
         with open(self.base_dir + "/config/databases.conf", "r") as stanza_file:
-            raw_stanzas = stanzas.parse_stanzas(stanza_file.read())
+            raw_stanzas = StanzaUtil.parse_stanzas(stanza_file.read())
             mystanzas = []
             for stanza in raw_stanzas:
                 mystanzas.append(Stanza(stanza))
@@ -54,7 +55,7 @@ class EzproxyServer:
             allow_redirects=False
         )
         pid = BeautifulSoup(restart_form.text, "html.parser") \
-            .find_all(attrs={"name":"pid"})[0] \
+            .find_all(attrs={"name": "pid"})[0] \
             .attrs["value"]
         self.pid = pid
 
@@ -72,8 +73,9 @@ class EzproxyServer:
                 data=restart_payload,
                 cookies=self.auth_cookie
             )
-            if BeautifulSoup(restart_request.text, "html.parser").h1.next_sibling.strip() == \
-                    "EZproxy will restart in 5 seconds.":
+            if (BeautifulSoup(restart_request.text, "html.parser")
+                .h1.next_sibling.strip() ==
+                    "EZproxy will restart in 5 seconds."):
                 if no_wait is False:
                     time.sleep(5)
                 self.get_pid()
@@ -82,3 +84,18 @@ class EzproxyServer:
         except RuntimeError:
             pass
         return self.pid
+
+    def search_proxy(self, url):
+        """
+        Search proxy instance for existing stanza with origin URL
+        """
+        origin_url = StanzaUtil.translate_url_origin(url)
+        matching_stanzas = []
+        try:
+            for stanza in self.stanzas:
+                if origin_url in stanza.get_origins():
+                    matching_stanzas.append(stanza.name)
+        except (AttributeError, TypeError):
+            raise AssertionError(
+                f"Expected a list of Stanzas. Got {type(stanzas)}")
+        return matching_stanzas
