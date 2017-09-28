@@ -8,39 +8,28 @@ from pyezproxy.stanzas import Stanza, StanzaUtil
 from pyezproxy.server import EzproxyServer
 
 
-class ParseStanzaTestCase(unittest.TestCase):
+class StanzaUtilTestCase(unittest.TestCase):
     """Test cases for stanza methods"""
     def setUp(self):
-        self.test_text = """
-        # This file contains database stanzas for resources only available
-        # MAIN and DL students
+        self.maxDiff = None
+        self.test_text = """#### Sage Knowledge START ####
+Title Sage Knowledge
+URL http://knowledge.sagepub.com
+#### Sage Knowledge END   ####
 
-        ####################################################################
-        ###############   EBOOK TYPE RESOURCES    ##########################
-        ####################################################################
+#### IPA Source START ####
+Title IPA Source
+URL https://www.ipasource.com
+#### IPA Source END   ####
 
-        #### Sage Knowledge START #####
-        Title Sage Knowledge
-        URL http://knowledge.sagepub.com
-        #### Sage Knowledge  END ####
-
-        ####################################################################
-        ###############    DATABASES PROVIDERS    ##########################
-        ####################################################################
-
-        #### IPA Source START ####
-        Title IPA Source
-        URL https://www.ipasource.com
-        #### IPA Source END ####
-
-        #### Mango for Libraries START ####
-        Title Mango for Libraries - Chicago
-        URL https://connect.mangolanguages.com/mbicl/start
-        DJ mangolanguages.com
-        DJ libraries.mangolanguages.com
-        HJ http://libraries.mangolanguages.com/mbicl/start
-        #### Mango for Libraries END ####
-        """
+#### Mango for Libraries - Chicago START ####
+Title Mango for Libraries - Chicago
+URL https://connect.mangolanguages.com/mbicl/start
+DJ mangolanguages.com
+DJ libraries.mangolanguages.com
+HJ http://libraries.mangolanguages.com/mbicl/start
+#### Mango for Libraries - Chicago END   ####
+"""
         self.test_raw_stanza_array = [
             OrderedDict({
                 "name": "Sage Knowledge",
@@ -81,9 +70,14 @@ class ParseStanzaTestCase(unittest.TestCase):
             "Parsing does not match"
         )
 
+    def test_print_stanzas(self):
+        """Test for StanzaUtil.parse_stanzas()"""
+        self.assertEqual(
+            StanzaUtil.print_stanzas(self.stanzas),
+            self.test_text,
+            "Generated file did not match input."
+        )
 
-class TranslateUrlTestCase(unittest.TestCase):
-    """TestCases for origin-related methods"""
     def test_translate(self):
         """Simple test for HTTP URL"""
         self.assertEqual(

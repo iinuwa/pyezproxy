@@ -22,13 +22,15 @@ class Stanza:
         origin_array = []
         for directive in directives:
             if directive in [
-                "URL", "Host", "H", "HostJavascript", "HJ"
+                "URL", "U", "Host", "H", "HostJavascript", "HJ"
             ]:
                 if isinstance(directives[directive], str):
-                    origin_array.append(StanzaUtil.translate_url_origin(directives[directive]))
+                    origin_array.append(StanzaUtil.translate_url_origin(
+                        directives[directive]))
                 elif isinstance(directives[directive], list):
                     for directive_str in directives[directive]:
-                        origin_array.append(StanzaUtil.translate_url_origin(directive_str))
+                        origin_array.append(StanzaUtil.translate_url_origin(
+                            directive_str))
         return set(origin_array)
 
 
@@ -56,7 +58,7 @@ class StanzaUtil:
                 elif started and line.startswith("#") is False:
                     param = line.strip().split(' ', 1)
                     key = param[0][:1] + param[0][1:]
-                    value = param[1]
+                    value = param[1].strip()
                     if key in db_config:
                         if isinstance(db_config[key], list) is False:
                             db_config[key] = [db_config[key]]
@@ -65,8 +67,28 @@ class StanzaUtil:
                         db_config[key] = value
         return stanza_array
 
+    def print_stanzas(stanzas):
+        lines = []
+        for stanza in stanzas:
+            lines.append("#### " + stanza.name + " START ####")
+            directives = stanza.get_directives()
+            for directive in directives:
+                if isinstance(directives[directive], list):
+                    for value in directives[directive]:
+                        lines.append(directive + " " + value)
+                else:
+                    lines.append(directive + " " + directives[directive])
+            lines.append("#### " + stanza.name + " END   ####")
+            lines.append("")  # Append blank line between stanzas.
+        return "\n".join(lines)
+
     def translate_url_origin(url):
         """Returns the origin URL of a given URL"""
+        if "//" not in url:
+            url = "//" + url
         parsed_url = urlparse(url)
-        origin = parsed_url.scheme + "://" + parsed_url.netloc
+        if parsed_url.scheme:
+            origin = parsed_url.scheme + "://" + parsed_url.netloc
+        else:
+            origin = parsed_url.netloc
         return origin
