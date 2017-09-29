@@ -12,6 +12,7 @@ class EzproxyServer:
         self.hostname = hostname
         self.base_dir = base_dir
         self.__set_stanzas()
+        self.__set_server_options()
         self.auth_cookie = None
         self.pid = None
 
@@ -22,6 +23,20 @@ class EzproxyServer:
             for stanza in raw_stanzas:
                 mystanzas.append(Stanza(stanza))
             self.stanzas = mystanzas
+
+    def __set_server_options(self):
+        with open(self.base_dir + "/config/server.conf", "r") as options_file:
+            options_array = []
+            options_text = options_file.read()
+            for line in options_text.splitlines():
+                # Skip empty lines and comments
+                if line.strip() and line.startswith("#") is False:
+                    param = line.strip().split(' ', 1)
+                    # Force inital letter of key to be uppercase
+                    key = param[0][:1].upper() + param[0][1:]
+                    value = param[1].strip()
+                    options_array.append({key: value})
+            self.options = options_array
 
     def login(self, username, password):
         """Login to an instance of EZProxy"""

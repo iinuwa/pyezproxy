@@ -103,6 +103,33 @@ HJ http://libraries.mangolanguages.com/mbicl/start
             "Origins do not match"
         )
 
+    def test_match_origin(self):
+
+        good_matches = [
+            {"http://example.org": "http://example.org"},
+            {"http://example.org": "example.org"},
+            {"http://example.org": "//example.org"},
+            {"//example.org": "//example.org"},
+            {"example.org": "//example.org"},
+            {"http://example.org:80": "http://example.org"}
+        ]
+
+        bad_matches = [
+            {"http://example.org": "https://example.org"},
+            {"http://example.org": "http://example.org:80"},
+            {"example.org": "http://example.org"}
+        ]
+
+        for test in good_matches:
+            for key, value in test.items():
+                self.assertTrue(
+                    StanzaUtil.match_origin_url(key, value))
+
+        for test in bad_matches:
+            for key, value in test.items():
+                self.assertFalse(
+                    StanzaUtil.match_origin_url(key, value))
+
 
 class StanzaTestCase(unittest.TestCase):
     """Test cases for Stanza class"""
@@ -184,7 +211,9 @@ class EZProxyServerTestCase(unittest.TestCase):
             #### Mango for Libraries END ####
             """
 
-    def test_set_stanzas(self):
+    @mock.patch(
+        'pyezproxy.server.EzproxyServer._EzproxyServer__set_server_options')
+    def test_set_stanzas(self, *args):
         with mock.patch('builtins.open',
                         mock.mock_open(read_data=self.test_text)) as mock_file:
             server = EzproxyServer("example.com", ".")
@@ -221,6 +250,8 @@ class EZProxyServerTestCase(unittest.TestCase):
     @mock.patch('requests.post', side_effect=mocked_login_request)
     @mock.patch('pyezproxy.server.EzproxyServer.get_pid')
     @mock.patch('pyezproxy.server.EzproxyServer._EzproxyServer__set_stanzas')
+    @mock.patch(
+        'pyezproxy.server.EzproxyServer._EzproxyServer__set_server_options')
     def test_login(self, *args):
         """Test for EzproxyServer.login()"""
         server = EzproxyServer("example.com", ".")
@@ -236,23 +267,22 @@ class EZProxyServerTestCase(unittest.TestCase):
             """Emulation of GET /restart on EZProxy server"""
             def __init__(self):
                 self.text = '''<html>
-                <body>
-                <a href="/admin">Administration</a><hr>
-                <h1>Restart EZproxy</h1>
-                <p>You have requested that EZproxy be restarted.</p>
-                <p>This release of EZproxy does not verify that the EZproxy configuration
-                is valid.  If there are errors in
-                config.txt or any file included by config.txt, EZproxy may shutdown.</p>
-                <p></p><form action="/restart" method="post">
-                <input type="hidden" name="pid" value="7977">
-                If you still want EZproxy to restart, type RESTART in this box
-                <input type="text" name="confirm" size="8" maxlength="8"> then click
-                <input type="submit" value="here"></form>
-                <p><a class="small" href="http://www.oclc.org/ezproxy/">Copyright
-                (c) 1993-2016 OCLC (ALL RIGHTS RESERVED).</a></p>
-                </body>
-                </html>
-                '''
+<body>
+<a href="/admin">Administration</a><hr>
+<h1>Restart EZproxy</h1>
+<p>You have requested that EZproxy be restarted.</p>
+<p>This release of EZproxy does not verify that the EZproxy configuration
+is valid.  If there are errors in
+config.txt or any file included by config.txt, EZproxy may shutdown.</p>
+<p></p><form action="/restart" method="post">
+<input type="hidden" name="pid" value="7977">
+If you still want EZproxy to restart, type RESTART in this box
+<input type="text" name="confirm" size="8" maxlength="8"> then click
+<input type="submit" value="here"></form>
+<p><a class="small" href="http://www.oclc.org/ezproxy/">Copyright
+(c) 1993-2016 OCLC (ALL RIGHTS RESERVED).</a></p>
+</body>
+</html>'''
         return MockRestartFormResponse()
 
     @mock.patch("requests.get", side_effect=mocked_request_form)
@@ -287,7 +317,9 @@ class EZProxyServerTestCase(unittest.TestCase):
         server.pid = 11111
         self.assertTrue(server.restart_ezproxy(no_wait=True))
 
-    def test_get_matching_origin(self):
+    @mock.patch(
+        'pyezproxy.server.EzproxyServer._EzproxyServer__set_server_options')
+    def test_get_matching_origin(self, *args):
         """Test for stanzas.search_proxy()"""
 
         with mock.patch('builtins.open',

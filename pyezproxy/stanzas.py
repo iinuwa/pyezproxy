@@ -90,5 +90,30 @@ class StanzaUtil:
         if parsed_url.scheme:
             origin = parsed_url.scheme + "://" + parsed_url.netloc
         else:
-            origin = parsed_url.netloc
+            origin = "//" + parsed_url.netloc
         return origin
+
+    def match_origin_url(url, origin):
+        if "//" not in url:
+            parsed_url = urlparse("//" + url)
+        else:
+            parsed_url = urlparse(url)
+
+        if "//" not in origin:
+            parsed_origin = urlparse("//" + origin)
+        else:
+            parsed_origin = urlparse(origin)
+
+        host_matches = (parsed_url.hostname == parsed_origin.hostname)
+
+        if parsed_origin.scheme:
+            scheme_matches = (parsed_url.scheme == parsed_origin.scheme)
+        else:
+            scheme_matches = True
+
+        if parsed_origin.port:
+            port_matches = (parsed_url.port == parsed_origin.port)
+        else:
+            port_matches = True
+
+        return (host_matches and scheme_matches and port_matches)
