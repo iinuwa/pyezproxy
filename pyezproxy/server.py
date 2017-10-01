@@ -34,8 +34,16 @@ class EzproxyServer:
                     options_array.append({key: value})
             self.options = options_array
 
-    def login(self, username, password):
+    def login(self, username, password=None):
         """Login to an instance of EZProxy"""
+        # Get password from usertext file
+        if password is None:
+            with open("./user.txt", "r") as auth_file:
+                for line in auth_file.readlines():
+                    if line.strip().startswith(username):
+                        password = line.split(":")[1]
+                        break
+
         login_url = "https://login." + self.hostname + "/login"
         credentials = {
             "user": username,
@@ -56,6 +64,14 @@ class EzproxyServer:
         self.auth_cookie = auth_cookie
         self.get_pid()
         return True
+
+    def logout(self):
+        response = requests.get(
+            "https://" + self.hostname + "/logout",
+            self.auth_cookie,
+            allow_redirects=False
+        )
+        return response.ok
 
     def get_pid(self):
         """Get the current PID of EZProxy"""
