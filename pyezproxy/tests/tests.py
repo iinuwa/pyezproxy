@@ -2,6 +2,7 @@
 
 import unittest
 from unittest import mock
+from textwrap import dedent
 from collections import OrderedDict
 from pyezproxy import stanzas
 from pyezproxy.stanzas import Stanza, StanzaUtil
@@ -12,24 +13,26 @@ class StanzaUtilTestCase(unittest.TestCase):
     """Test cases for stanza methods"""
     def setUp(self):
         self.maxDiff = None
-        self.test_text = """#### Sage Knowledge START ####
-Title Sage Knowledge
-URL http://knowledge.sagepub.com
-#### Sage Knowledge END   ####
+        self.test_text = """\
+        #### Sage Knowledge START ####
+        Title Sage Knowledge
+        URL http://knowledge.sagepub.com
+        #### Sage Knowledge END   ####
 
-#### IPA Source START ####
-Title IPA Source
-URL https://www.ipasource.com
-#### IPA Source END   ####
+        #### IPA Source START ####
+        Title IPA Source
+        URL https://www.ipasource.com
+        #### IPA Source END   ####
 
-#### Mango for Libraries - Chicago START ####
-Title Mango for Libraries - Chicago
-URL https://connect.mangolanguages.com/mbicl/start
-DJ mangolanguages.com
-DJ libraries.mangolanguages.com
-HJ http://libraries.mangolanguages.com/mbicl/start
-#### Mango for Libraries - Chicago END   ####
-"""
+        #### Mango for Libraries - Chicago START ####
+        Title Mango for Libraries - Chicago
+        URL https://connect.mangolanguages.com/mbicl/start
+        DomainJavascript mangolanguages.com
+        DomainJavascript libraries.mangolanguages.com
+        HostJavascript http://libraries.mangolanguages.com/mbicl/start
+        #### Mango for Libraries - Chicago END   ####
+        """
+
         self.test_raw_stanza_array = [
             OrderedDict({
                 "name": "Sage Knowledge",
@@ -50,11 +53,12 @@ HJ http://libraries.mangolanguages.com/mbicl/start
                 "config": OrderedDict({
                     "Title": "Mango for Libraries - Chicago",
                     "URL": "https://connect.mangolanguages.com/mbicl/start",
-                    "DJ": [
+                    "DomainJavascript": [
                         "mangolanguages.com",
                         "libraries.mangolanguages.com"
                     ],
-                    "HJ": "http://libraries.mangolanguages.com/mbicl/start"
+                    "HostJavascript":
+                        "http://libraries.mangolanguages.com/mbicl/start"
                 })
             })
         ]
@@ -64,19 +68,34 @@ HJ http://libraries.mangolanguages.com/mbicl/start
 
     def test_parse(self):
         """Test for StanzaUtil.parse_stanzas()"""
-        self.assertEqual(
-            StanzaUtil.parse_stanzas(self.test_text),
-            self.test_raw_stanza_array,
-            "Parsing does not match"
-        )
+        parsed_stanzas = StanzaUtil.parse_stanzas(self.test_text)
+        for i in range(len(parsed_stanzas)):
+            self.assertEqual(
+                parsed_stanzas[i].get_directives(),
+                self.stanzas[i].get_directives(),
+                "Parsing does not match"
+            )
 
     def test_print_stanzas(self):
-        """Test for StanzaUtil.parse_stanzas()"""
+        """Test for StanzaUtil.print_stanzas()"""
         self.assertEqual(
             StanzaUtil.print_stanzas(self.stanzas),
-            self.test_text,
+            dedent(self.test_text),
             "Generated file did not match input."
         )
+
+    def test_expand_shortcuts(self):
+        text = """\
+        T This is a Title
+        U http://url.com
+        D domain.com
+        DJ domainjavascript.com
+        H host.com
+        HJ hostjavascript.com
+        """
+        stanza = StanzaUtil.parse_stanza(dedent(text))
+        for shortcut in StanzaUtil.shortcuts.values():
+            self.assertTrue(shortcut in stanza.get_directives())
 
     def test_translate(self):
         """Simple test for HTTP URL"""
@@ -266,23 +285,23 @@ class EZProxyServerTestCase(unittest.TestCase):
         class MockRestartFormResponse:
             """Emulation of GET /restart on EZProxy server"""
             def __init__(self):
-                self.text = '''<html>
-<body>
-<a href="/admin">Administration</a><hr>
-<h1>Restart EZproxy</h1>
-<p>You have requested that EZproxy be restarted.</p>
-<p>This release of EZproxy does not verify that the EZproxy configuration
-is valid.  If there are errors in
-config.txt or any file included by config.txt, EZproxy may shutdown.</p>
-<p></p><form action="/restart" method="post">
-<input type="hidden" name="pid" value="7977">
-If you still want EZproxy to restart, type RESTART in this box
-<input type="text" name="confirm" size="8" maxlength="8"> then click
-<input type="submit" value="here"></form>
-<p><a class="small" href="http://www.oclc.org/ezproxy/">Copyright
-(c) 1993-2016 OCLC (ALL RIGHTS RESERVED).</a></p>
-</body>
-</html>'''
+                self.text = '''\
+                <html>
+                <body>
+                <a href="/admin">Administration</a><hr>
+                <h1>Restart EZproxy</h1> <p>You have requested that EZproxy be
+                restarted.</p> <p>This release of EZproxy does not verify that
+                the EZproxy configuration is valid.  If there are errors in
+                config.txt or any file included by config.txt, EZproxy may
+                shutdown.</p> <p></p><form action="/restart" method="post">
+                <input type="hidden" name="pid" value="7977"> If you still want
+                EZproxy to restart, type RESTART in this box <input type="text"
+                name="confirm" size="8" maxlength="8"> then click <input
+                type="submit" value="here"></form> <p><a class="small"
+                href="http://www.oclc.org/ezproxy/">Copyright (c) 1993-2016 OCLC
+                (ALL RIGHTS RESERVED).</a></p>
+                </body>
+                </html>'''
         return MockRestartFormResponse()
 
     @mock.patch("requests.get", side_effect=mocked_request_form)
