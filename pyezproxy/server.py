@@ -3,7 +3,7 @@ import time
 import requests
 from bs4 import BeautifulSoup
 from . import stanzas
-from .stanzas import Stanza, StanzaUtil
+from .stanzas import StanzaUtil
 
 
 class EzproxyServer:
@@ -18,11 +18,7 @@ class EzproxyServer:
 
     def __set_stanzas(self):
         with open(self.base_dir + "/config/databases.conf", "r") as stanza_file:
-            raw_stanzas = StanzaUtil.parse_stanzas(stanza_file.read())
-            mystanzas = []
-            for stanza in raw_stanzas:
-                mystanzas.append(Stanza(stanza))
-            self.stanzas = mystanzas
+            self.stanzas = StanzaUtil.parse_stanzas(stanza_file.read())
 
     def __set_server_options(self):
         with open(self.base_dir + "/config/server.conf", "r") as options_file:

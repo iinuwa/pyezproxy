@@ -35,37 +35,61 @@ class Stanza:
 
 
 class StanzaUtil:
+    shortcuts = {
+        "T": "Title",
+        "U": "URL",
+        "H": "Host",
+        "HJ": "HostJavascript",
+        "D": "Domain",
+        "DJ": "DomainJavascript"
+    }
+
     def parse_stanzas(stanza_text):
         """Function to parse database stanza files"""
+        stanza_array = []
+        for stanza_text in (StanzaUtil.__extract_stanzas(stanza_text)):
+            stanza_array.append(StanzaUtil.parse_stanza(stanza_text))
+        return stanza_array
+
+    def __extract_stanzas(stanzas_text):
         start = "START"
         end = "END"
-        stanza_array = []
+        buffer = []
         started = False
-        for line in stanza_text.splitlines():
-            if line.strip():
+        for line in stanzas_text.splitlines():
+            if line.strip():  # Omits blank lines
                 if start in line:
                     started = True
-                    db_config = OrderedDict()
+                    directives_text = []
                 elif end in line:
                     started = False
-                    db_dict = OrderedDict()
-                    if 'Title' in db_config:
-                        db_dict['name'] = db_config['Title']
-                    else:
-                        db_dict['name'] = ""
-                    db_dict['config'] = db_config
-                    stanza_array.append(db_dict)
-                elif started and line.startswith("#") is False:
-                    param = line.strip().split(' ', 1)
-                    key = param[0][:1] + param[0][1:]
-                    value = param[1].strip()
-                    if key in db_config:
-                        if isinstance(db_config[key], list) is False:
-                            db_config[key] = [db_config[key]]
-                        db_config[key].append(value)
-                    else:
-                        db_config[key] = value
-        return stanza_array
+                    buffer.append("\n".join(directives_text))
+                elif started:
+                    directives_text.append(line.strip())
+        return buffer
+
+    def parse_stanza(stanza_text):
+        return_dict = {}
+        db_config = OrderedDict()
+
+        for line in stanza_text.splitlines():
+            if line.startswith("#") is False:  # Ignore comments in file.
+                param = line.strip().split(' ', 1)
+                # Force initial letter of key to be uppercase
+                key = param[0][:1].upper() + param[0][1:]
+                if key.upper() in StanzaUtil.shortcuts:
+                    key = StanzaUtil.shortcuts.get(key)
+                value = param[1].strip()
+                if key in db_config:
+                    if isinstance(db_config[key], list) is False:
+                        db_config[key] = [db_config[key]]
+                    db_config[key].append(value)
+                else:
+                    db_config[key] = value
+
+        return_dict["name"] = db_config.get("Title")
+        return_dict["config"] = db_config
+        return Stanza(return_dict)
 
     def print_stanzas(stanzas):
         lines = []
