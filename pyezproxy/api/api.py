@@ -11,11 +11,11 @@ server = None
 app = Flask(__name__)
 
 
-def start(hostname, base_dir, username, password):
+def start(hostname, base_dir, username):
     global server
     global app
     server = EzproxyServer(hostname, base_dir)
-    server.login(username, password)
+    server.login(username)
     app.run()
 
 
@@ -24,7 +24,22 @@ def status():
     return Response(json.dumps(server.options), mimetype="application/json")
 
 
-@app.route("/stanzas")
+@app.route("/stanzas", methods=["GET", "POST"])
+def stanzas_router():
+    """
+    Retrieves stanzas or create a stanza
+    POST request takes the following JSON schema:
+    {
+        "text": "Title Example Database\nURL http://www.example.com"
+    }
+    """
+
+    if request.method == "GET":
+        return get_stanzas()
+    elif request.method == "POST":
+        return create_stanza(request.get_json().get("text"))
+
+
 def get_stanzas():
     return_json = []
 
@@ -51,16 +66,51 @@ def get_stanzas():
     return Response(json.dumps(return_json), mimetype='application/json')
 
 
-@app.route("/stanzas/<int:position>")
+def create_stanza(stanza_text):
+    stanza = StanzaUtil.parse_stanza(stanza_text)
+    server.stanzas.append(stanza)
+    return "Stanza created.", 201
+
+
+@app.route("/stanzas/<int:position>", methods=["GET", "PUT", "PATCH"])
+def stanza_detail_router(position):
+    if request.method == "GET":
+        return get_stanza_detail(position)
+    elif request.method == "PUT":
+        return update_stanza(position, request.get_json().get("text"))
+    elif request.method == "PATCH":
+        new_position = request.get_json().get("position")
+        return move_stanza(position, new_position)
+
+
 def get_stanza_detail(position):
-    stanza = server.stanzas[position - 1]
+    try:
+        stanza = server.stanzas[position - 1]
+    except IndexError:
+        return "Stanza not found", 404
+
     return_json = {
             "position": position,
             "name": stanza.name,
-            "directives": stanza.directives
+            "directives": stanza.directives,
+            "origins": list(stanza.get_origins())
     }
     return Response(json.dumps(return_json), mimetype='application/json')
 
 
+def update_stanza(position, stanza_text):
+    server.stanzas[position - 1] = StanzaUtil.parse_stanza(stanza_text)
+    return "Stanza updated.", 200
+
+
+def move_stanza(current_position, new_position):
+    if current_position == new_position:
+        pass
+    else:
+        stanza = server.stanzas.pop(current_position - 1)
+        server.stanzas.insert(new_position - 1, stanza)
+        return "Stanza moved.", 200
+
+
 if __name__ == "__main__":
-    start(args[1], args[2], args[3], args[4])
+    start(args[1], args[2], args[3])
