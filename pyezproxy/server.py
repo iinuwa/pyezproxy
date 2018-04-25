@@ -38,7 +38,7 @@ class EzproxyServer:
         """Login to an instance of EZProxy"""
         # Get password from usertext file
         if password is None:
-            with open("./user.txt", "r") as auth_file:
+            with open(self.base_dir + "/user.txt", "r") as auth_file:
                 for line in auth_file.readlines():
                     if line.strip().startswith(username):
                         password = line.split(":")[1]
