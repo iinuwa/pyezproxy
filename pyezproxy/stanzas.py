@@ -1,5 +1,6 @@
 """This is a utility module for working with EZproxy stanzas"""
 
+from os import path
 from urllib.parse import urlparse
 from collections import OrderedDict
 
@@ -9,7 +10,16 @@ class Stanza:
 
     def __init__(self, stanza_array):
         self.name = stanza_array["name"]
-        self.directives = stanza_array["config"]
+        self.group = stanza_array["config"].get("Group", "Default")
+        self.directives = None
+        self.__set_directives(stanza_array["config"])
+
+    def __set_directives(self, stanza_config):
+        # Remove group key if already set
+        directives = stanza_config
+        if "Group" in stanza_config:
+            del directives["Group"]
+        self.directives = directives
 
     def get_directives(self):
         """Returns the directives of this stanza"""
@@ -32,6 +42,18 @@ class Stanza:
                         origin_array.append(StanzaUtil.translate_url_origin(
                             directive_str))
         return set(origin_array)
+
+    def get_group(self):
+        """Returns group if specified in stanza directives"""
+        return self.group
+
+    def __sort_directives(self, key_tuple):
+        # group goes first, then title, then everything else
+        sorted_keys = {
+            "Group": -2,
+            "Title": -1
+        }
+        return sorted_keys.get(key_tuple[0], 0)
 
 
 class StanzaUtil:
@@ -73,7 +95,8 @@ class StanzaUtil:
         db_config = OrderedDict()
 
         for line in stanza_text.splitlines():
-            if line.startswith("#") is False:  # Ignore comments in file.
+            # Ignore comments in file.
+            if line.strip() and line.startswith("#") is False:
                 param = line.strip().split(' ', 1)
                 # Force initial letter of key to be uppercase
                 key = param[0][:1].upper() + param[0][1:]
@@ -87,7 +110,11 @@ class StanzaUtil:
                 else:
                     db_config[key] = value
 
-        return_dict["name"] = db_config.get("Title")
+        if db_config.get("IncludeFile") and not db_config.get("Title"):
+            return_dict["name"] = path.split(db_config.get("IncludeFile"))[1]
+        else:
+            return_dict["name"] = db_config.get("Title")
+
         return_dict["config"] = db_config
         return Stanza(return_dict)
 
@@ -95,6 +122,7 @@ class StanzaUtil:
         lines = []
         for stanza in stanzas:
             lines.append("#### " + stanza.name + " START ####")
+            lines.append("Group " + stanza.group)
             directives = stanza.get_directives()
             for directive in directives:
                 if isinstance(directives[directive], list):

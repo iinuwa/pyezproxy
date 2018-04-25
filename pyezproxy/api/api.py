@@ -92,7 +92,8 @@ def get_stanza_detail(position):
     return_json = {
             "position": position,
             "name": stanza.name,
-            "directives": stanza.directives,
+            "group": stanza.get_group(),
+            "directives": stanza.get_directives(),
             "origins": list(stanza.get_origins())
     }
     return Response(json.dumps(return_json), mimetype='application/json')

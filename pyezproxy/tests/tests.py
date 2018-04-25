@@ -15,16 +15,19 @@ class StanzaUtilTestCase(unittest.TestCase):
         self.maxDiff = None
         self.test_text = """\
         #### Sage Knowledge START ####
+        Group Default
         Title Sage Knowledge
         URL http://knowledge.sagepub.com
         #### Sage Knowledge END   ####
 
         #### IPA Source START ####
+        Group Default
         Title IPA Source
         URL https://www.ipasource.com
         #### IPA Source END   ####
 
         #### Mango for Libraries - Chicago START ####
+        Group Default
         Title Mango for Libraries - Chicago
         URL https://connect.mangolanguages.com/mbicl/start
         DomainJavascript mangolanguages.com
@@ -75,6 +78,15 @@ class StanzaUtilTestCase(unittest.TestCase):
                 self.stanzas[i].get_directives(),
                 "Parsing does not match"
             )
+
+    def test_get_groups(self):
+        stanza_text = """\
+        Title Testing
+        URL http://example.com
+        Group Group1
+        """
+        stanza = StanzaUtil.parse_stanza(dedent(stanza_text))
+        self.assertEqual(stanza.get_group(), "Group1")
 
     def test_print_stanzas(self):
         """Test for StanzaUtil.print_stanzas()"""
@@ -230,6 +242,52 @@ class EZProxyServerTestCase(unittest.TestCase):
             #### Mango for Libraries END ####
             """
 
+        self.config_file = """
+        ## In this file, lines starting with # are comments.  The lines starting
+        ## with ## are meant solely as comments, whereas the lines starting with
+        ## only # are followed by example entries.
+
+        ## MBI Host configuration -- BEGIN
+        Name chilib-test.moody.edu
+        Interface 172.26.200.26
+        LoginPortSSL 443
+        LoginPort 80
+        LoginCookieName EZProxyCHI
+        ## MBI Host Configuration -- END
+
+        ## MBI EZPROXY Common Configuration
+        IncludeFile /opt/ezproxy/config/global.conf
+        ### DATABASES ###
+        #################
+
+        #### Resources available to all users START ####
+        Group General
+        AutoLoginIP 172.18.100.0-172.18.103.255
+        AutoLoginIP 70.91.224.114
+        IncludeFile ./config/databases/general.conf
+        IncludeFile ./config/databases/trials.conf
+        ### Resources available to all users END ####
+
+        #### Resources available only to MAIN START ####
+        Group Main
+        AutoLoginIP 172.18.100.0-172.18.103.255
+        IncludeFile ./config/databases/main.conf
+        ### Resources available only to MAIN END ####
+
+        #### Resources available only to Spok and Main START ####
+        Group Mixed2
+        AutoLoginIP 172.18.100.0-172.18.103.255
+        # AutoLoginIP 70.91.224.114
+        IncludeFile ./config/databases/main_mixed.conf
+        #### Resources available only to Spok and Main END ####
+
+        #### Resources available only to Mich and Main START ####
+        Group Mixed1
+        AutoLoginIP 172.18.100.0-172.18.103.255
+        AutoLoginIP 70.91.224.114
+        #### Resources available only to Mich and Main END ####
+        """
+
     @mock.patch(
         'pyezproxy.server.EzproxyServer._EzproxyServer__set_server_options')
     def test_set_stanzas(self, *args):
@@ -306,6 +364,8 @@ class EZProxyServerTestCase(unittest.TestCase):
 
     @mock.patch("requests.get", side_effect=mocked_request_form)
     @mock.patch('pyezproxy.server.EzproxyServer._EzproxyServer__set_stanzas')
+    @mock.patch(
+        'pyezproxy.server.EzproxyServer._EzproxyServer__set_server_options')
     def test_get_pid(self, *args):
         """Test for EzproxyServer.get_pid()"""
         server = EzproxyServer("example.com", ".")
@@ -331,10 +391,14 @@ class EZProxyServerTestCase(unittest.TestCase):
     @mock.patch('pyezproxy.server.EzproxyServer._EzproxyServer__set_stanzas')
     def test_restart_ezproxy(self, *args):
         """Test for EzproxyServer.restart_ezproxy()"""
-        server = EzproxyServer("example.com", ".")
-        server.auth_cookie = {"cookie": "value"}
-        server.pid = 11111
-        self.assertTrue(server.restart_ezproxy(no_wait=True))
+        with mock.patch('builtins.open',
+                        mock.mock_open(read_data=dedent(self.config_file))
+                        ) as mock_file:
+            server = EzproxyServer("example.com", ".")
+            mock_file.assert_called_with("./config/server.conf", "r")
+            server.auth_cookie = {"cookie": "value"}
+            server.pid = 11111
+            self.assertTrue(server.restart_ezproxy(no_wait=True))
 
     @mock.patch(
         'pyezproxy.server.EzproxyServer._EzproxyServer__set_server_options')
@@ -346,9 +410,9 @@ class EZProxyServerTestCase(unittest.TestCase):
             server = EzproxyServer("example.com", ".")
             self.assertEqual(
                 server.search_proxy(
-                    "http://libraries.mangolanguages.com"
+                    "http://libraries.mangolanguages.com/somepath"
                 ),
-                ["Mango for Libraries - Chicago"]
+                {(2, "Mango for Libraries - Chicago")}
             )
 
 

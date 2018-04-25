@@ -112,17 +112,33 @@ class EzproxyServer:
             pass
         return self.pid
 
-    def search_proxy(self, url):
+    def get_stanzas(self):
+        return self.stanzas
+
+    def search_proxy(self, url=None, name=None):
         """
         Search proxy instance for existing stanza with origin URL
         """
-        origin_url = StanzaUtil.translate_url_origin(url)
-        matching_stanzas = []
+        url_matches = set()
+        name_matches = set()
         try:
-            for stanza in self.stanzas:
-                if origin_url in stanza.get_origins():
-                    matching_stanzas.append(stanza.name)
+            for i in range(len(self.get_stanzas())):
+                stanza = self.get_stanzas()[i]
+                if url:
+                    for origin in stanza.get_origins():
+                        if StanzaUtil.match_origin_url(url, origin):
+                            url_matches.add((i, stanza.name))
+                            break
+                elif name and stanza.name.startswith(name):
+                    name_matches.add((i, stanza.name))
+
+            if bool(url_matches) and bool(name_matches):
+                return url_matches & name_matches
+            elif bool(url_matches):
+                return url_matches
+            elif bool(name_matches):
+                return name_matches
+
         except (AttributeError, TypeError):
             raise AssertionError(
                 f"Expected a list of Stanzas. Got {type(stanzas)}")
-        return matching_stanzas

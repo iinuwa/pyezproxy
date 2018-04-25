@@ -18,23 +18,24 @@ in an API:
 - When a library database configuration is changed, notify the proxy (or proxy
   administrator)
 - A controller to send requests to specific instances of the API
- - Translation from starting point URL to origin (complete)
- - Search proxy instance for existing stanza with hostname (or starting point
+- Translation from starting point URL to origin (complete)
+- Search proxy instance for existing stanza with hostname (or starting point
   URL with above translation embedded) (complete)
-  # - Requires parsing database stanza files (complete)
+  - Requires parsing database stanza files (complete)
 - Check OCLC site for stanza using fuzzy matching on title? (optional)
   - Requires parsing HTML for item list.
 - Create stanza with options identified
   - Include logic to make sure that at least Title and URL are included.
-- Restart ezproxy
+- Restart ezproxy (complete)
 
 Other functions that may be useful in the future:
 - query tasks by matching URL/Hostname directive, retrieve more details with
-  stanza ID
-- start and stop ezproxy
+  stanza ID (complete)
+- start and stop ezproxy # will not implement
 - Delete or modify database stanzas
-- Test if user can authenticate to database
+- Test if user can authenticate to database # Would require logging in with a LDAP DN with lookup permissions. Probably not in the scope of this API.
 - Modify GLOBAL stanza
+- specify user in config, read password from user.txt
 
 Deployment requirements:
 - HTTP Rest service
