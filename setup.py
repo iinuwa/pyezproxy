@@ -6,7 +6,7 @@ setup(name='pyezproxy',
       author='Isaiah Inuwa',
       author_email='isaiah.inuwa@gmail.com',
       license='MIT',
-      packages=['pyezproxy'],
+      packages=['pyezproxy','pyezproxy.api'],
       install_requires=[
         'flask',
         'requests',
