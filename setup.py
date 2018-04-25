@@ -8,6 +8,7 @@ setup(name='pyezproxy',
       license='MIT',
       packages=['pyezproxy'],
       install_requires=[
+        'flask',
         'requests',
         'beautifulsoup4'
       ],
